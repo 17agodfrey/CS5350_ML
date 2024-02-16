@@ -45,6 +45,8 @@ class SimplePerceptron :
             self.train_folds = train_folds
             self.T = 0
             self.num_T = num_T
+            self.num_updates = 0
+
         
         # you may not even need data as an argument.
         # Remember x is a row of the data, y is the label
@@ -65,6 +67,7 @@ class SimplePerceptron :
             # print("w:\n", self.w)
             self.w += self.n * y * x
             self.b += self.n * y
+            self.num_updates += 1
             
             
         def test_accuracy(self, test_data):
@@ -79,16 +82,12 @@ class SimplePerceptron :
             return correct_values/total_values
         
         # basically this is training the model (updating w and b) over however many number of epochs we want
-        def run_epochs(self, train_data):
-            for t in range(self.num_T):
-                # shuffle the data
-                train_data = train_data.sample(frac=1).reset_index(drop=True)
-                # print("train_data[0][3]:\n", train_data.iloc[0, 3])
-                for i in range(train_data.shape[0]):
-                    x = train_data.iloc[i, 1:]
-                    y = train_data.iloc[i, 0]
-                    if not self.check(x, y):
-                        self.update(x, y)
+        def run_epoch(self, train_data):
+            for i in range(train_data.shape[0]):
+                x = train_data.iloc[i, 1:]
+                y = train_data.iloc[i, 0]
+                if not self.check(x, y):
+                    self.update(x, y)
         
         def cross_validation(self):
             total_accuracy = 0
@@ -102,7 +101,10 @@ class SimplePerceptron :
                 # print(train_data)
                 # train the model using the training folds
                 # print('----------new epoch set----------')
-                self.run_epochs(train_data)
+                for t in range(self.num_T):
+                    # shuffle the data
+                    train_data = train_data.sample(frac=1, random_state=42)
+                    self.run_epoch(train_data)
                 # test the model using the testing fold
                 accuracy = self.test_accuracy(test_data)
                 total_accuracy += accuracy
@@ -127,7 +129,10 @@ class DecayingLearningRatePerceptron :
             self.b = np.random.uniform(-.01, .01, 1)
             self.train_folds = train_folds
             self.T = 0
-            self.num_T = num_T        
+            self.num_T = num_T     
+            self.num_updates = 0
+
+               
         # you may not even need data as an argument.
         # Remember x is a row of the data, y is the label
         def check(self, x, y):
@@ -138,6 +143,7 @@ class DecayingLearningRatePerceptron :
         def update(self, x, y):
             self.w += self.n * y * x
             self.b += self.n * y
+            self.num_updates += 1
         
         # call this when we've completed an epoch            
         def decay(self):
@@ -156,18 +162,13 @@ class DecayingLearningRatePerceptron :
             return correct_values/total_values
         
         # basically this is training the model (updating w and b) over however many number of epochs we want
-        def run_epochs(self, train_data):
-            self.T = 0
-            for t in range(self.num_T):
-                # shuffle the data
-                train_data = train_data.sample(frac=1).reset_index(drop=True)
-                # print("train_data[0][3]:\n", train_data.iloc[0, 3])
-                for i in range(train_data.shape[0]):
-                    x = train_data.iloc[i, 1:]
-                    y = train_data.iloc[i, 0]
-                    if not self.check(x, y):
-                        self.update(x, y)
-                self.decay()
+        def run_epoch(self, train_data):
+            for i in range(train_data.shape[0]):
+                x = train_data.iloc[i, 1:]
+                y = train_data.iloc[i, 0]
+                if not self.check(x, y):
+                    self.update(x, y)
+            self.decay()
         
         def cross_validation(self):
             total_accuracy = 0
@@ -179,7 +180,11 @@ class DecayingLearningRatePerceptron :
                 train_data = pd.concat([fold for j, fold in enumerate(self.train_folds) if j != i], ignore_index=True)
                 # train the model using the training folds
                 # print('----------new epoch set----------')
-                self.run_epochs(train_data)
+                for t in range(self.num_T):
+                    # shuffle the data
+                    train_data = train_data.sample(frac=1, random_state=42)
+                    self.run_epoch(train_data)          
+                self.T = 0
                 # test the model using the testing fold
                 accuracy = self.test_accuracy(test_data)
                 total_accuracy += accuracy
@@ -207,7 +212,9 @@ class MarginPerceptron :
                 self.b = np.random.uniform(-.01, .01, 1)
                 self.train_folds = train_folds
                 self.T = 0
-                self.num_T = num_T       
+                self.num_T = num_T    
+                self.num_updates = 0
+
                      
             # you may not even need data as an argument.
             # Remember x is a row of the data, y is the label
@@ -219,6 +226,7 @@ class MarginPerceptron :
             def update(self, x, y):
                 self.w += self.n * y * x
                 self.b += self.n * y
+                self.num_updates += 1
             
             # call this when we've completed an epoch            
             def decay(self):
@@ -237,18 +245,13 @@ class MarginPerceptron :
                 return correct_values/total_values
         
             # basically this is training the model (updating w and b) over however many number of epochs we want
-            def run_epochs(self, train_data):
-                self.T = 0
-                for t in range(self.num_T):
-                    # shuffle the data
-                    train_data = train_data.sample(frac=1).reset_index(drop=True)
-                    # print("train_data[0][3]:\n", train_data.iloc[0, 3])
-                    for i in range(train_data.shape[0]):
-                        x = train_data.iloc[i, 1:]
-                        y = train_data.iloc[i, 0]
-                        if not self.check(x, y):
-                            self.update(x, y)
-                    self.decay()
+            def run_epoch(self, train_data):
+                for i in range(train_data.shape[0]):
+                    x = train_data.iloc[i, 1:]
+                    y = train_data.iloc[i, 0]
+                    if not self.check(x, y):
+                        self.update(x, y)
+                self.decay()
             
             def cross_validation(self):
                 total_accuracy = 0
@@ -261,7 +264,11 @@ class MarginPerceptron :
                     # print(train_data)
                     # train the model using the training folds
                     # print('----------new epoch set----------')
-                    self.run_epochs(train_data)
+                    for t in range(self.num_T):
+                        # shuffle the data
+                        train_data = train_data.sample(frac=1, random_state=42)
+                        self.run_epoch(train_data)          
+                    self.T = 0                    
                     # test the model using the testing fold
                     accuracy = self.test_accuracy(test_data)
                     total_accuracy += accuracy
@@ -292,6 +299,7 @@ class AveragedPerceptron :
                 self.train_folds = train_folds
                 self.T = 0
                 self.num_T = num_T
+                self.num_updates = 0
             
             # you may not even need data as an argument.
             # Remember x is a row of the data, y is the label
@@ -303,6 +311,7 @@ class AveragedPerceptron :
             def update(self, x, y):
                 self.w += self.n * y * x
                 self.b += self.n * y
+                self.num_updates += 1
                 
             def avg(self):
                 self.a += self.w
@@ -320,17 +329,13 @@ class AveragedPerceptron :
                 return correct_values/total_values
         
             # basically this is training the model (updating w and b) over however many number of epochs we want
-            def run_epochs(self, train_data):
-                for t in range(self.num_T):
-                    # shuffle the data
-                    train_data = train_data.sample(frac=1).reset_index(drop=True)
-                    # print("train_data[0][3]:\n", train_data.iloc[0, 3])
-                    for i in range(train_data.shape[0]):
-                        x = train_data.iloc[i, 1:]
-                        y = train_data.iloc[i, 0]
-                        if not self.check(x, y):
-                            self.update(x, y)
-                        self.avg() # update the averaged weight vector and bias
+            def run_epoch(self, train_data):
+                for i in range(train_data.shape[0]):
+                    x = train_data.iloc[i, 1:]
+                    y = train_data.iloc[i, 0]
+                    if not self.check(x, y):
+                        self.update(x, y)
+                    self.avg() # update the averaged weight vector and bias
             
             def cross_validation(self):
                 total_accuracy = 0
@@ -345,8 +350,10 @@ class AveragedPerceptron :
                     # print(train_data)
                     # train the model using the training folds
                     # print('----------new epoch set----------')
-                    self.run_epochs(train_data)
-                    # test the model using the testing fold
+                    for t in range(self.num_T):
+                        # shuffle the data
+                        train_data = train_data.sample(frac=1, random_state=42)
+                        self.run_epoch(train_data)          
                     accuracy = self.test_accuracy(test_data)
                     if accuracy > best_accuracy:
                         best_accuracy = accuracy
